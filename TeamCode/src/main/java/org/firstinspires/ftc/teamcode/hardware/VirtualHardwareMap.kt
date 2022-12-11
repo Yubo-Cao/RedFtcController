@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.hardware
 import com.qualcomm.robotcore.hardware.HardwareDevice
 import com.qualcomm.robotcore.hardware.HardwareMap
 
-object VirtualHardwareMap : HardwareMap(null) {
+object VirtualHardwareMap : HardwareMap(null, null) {
     // appContext is required param. However, this property is never used in the SDK.
     // So, we can pass null.
     private val map = mutableMapOf<String, HardwareDevice>()
