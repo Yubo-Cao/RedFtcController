@@ -59,25 +59,10 @@ public class BasicDrive extends OpMode {
      */
     @Override
     public void loop() {
-        // Implementation of a Controller Deadzone to prevent accidental movement due to
-        // uncentered joystick.
-        if (Math.abs(gamepad1.left_stick_x) < 0.05) {
-            deadzoneX = 0;
-        } else {
-            deadzoneX = -gamepad1.left_stick_x;
-        }
-
-        if (Math.abs(gamepad1.right_stick_x) < 0.05) {
-            deadzoneY = 0;
-        } else {
-            deadzoneY = -gamepad1.right_stick_x;
-        }
-
-        if (Math.abs(gamepad1.left_stick_y) < 0.05) {
-            deadzoneRotate = 0;
-        } else {
-            deadzoneRotate = gamepad1.left_stick_y;
-        }
+        // Deadzone to prevent robot from moving when joystick is not being touched
+        deadzoneX = Math.abs(gamepad1.left_stick_x) < 0.05 ? 0 : -gamepad1.left_stick_x;
+        deadzoneY = Math.abs(gamepad1.right_stick_x) < 0.05 ? 0 : -gamepad1.right_stick_x;
+        deadzoneRotate = Math.abs(gamepad1.left_stick_y) < 0.05 ? 0 : gamepad1.left_stick_y;
 
         if (gamepad1.right_trigger == 1) {
             baseArm.setPower(.5);
@@ -95,14 +80,15 @@ public class BasicDrive extends OpMode {
         }
 
         if (gamepad1.left_trigger >= 0.05)
-            linearSlide.setPower(-0.9);
+            linearSlide.setPower(-1.5);
         else if (gamepad1.right_trigger >= 0.05)
-            linearSlide.setPower(0.9);
+            linearSlide.setPower(1.5);
         else
             linearSlide.setPower(0.0);
 
         // Mecanum wheel drive calculations
-        double r = Math.hypot(deadzoneX, -deadzoneY); // deadzones are incorporated into these values
+        double r =
+                Math.hypot(deadzoneX, -deadzoneY); // deadzones are incorporated into these values
         double robotAngle = Math.atan2(-deadzoneY, deadzoneX) - Math.PI / 4;
         double rightX = deadzoneRotate / 1.25;
         final double v1 = r * Math.cos(robotAngle) + rightX;
@@ -114,16 +100,7 @@ public class BasicDrive extends OpMode {
         frontRight.setPower(v1 * .75);
         frontLeft.setPower(v4 * .75);
         backRight.setPower(v3 * .75);
-        backLeft.setPower(v2 * .75);
-
-        telemetry.addData("frontRight", frontRight.getCurrentPosition());
-        telemetry.addData("frontLeft", frontLeft.getCurrentPosition());
-        telemetry.addData("backRight", backRight.getCurrentPosition());
-        telemetry.addData("backLeft", backLeft.getCurrentPosition());
-        telemetry.addData("servo 1", gripServo1.getPosition());
-        telemetry.addData("servo 2", gripServo2.getPosition());
     }
-
     @Override
     public void stop() {
     }
