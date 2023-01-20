@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.openftc.easyopencv.OpenCvCamera;
@@ -9,12 +9,9 @@ import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
 
-@TeleOp(name = "Open CV Powered Auton", group = "Linear Opmode")
+@Autonomous(name = "Open CV Powered Auton")
 public class OpenCVAuton extends LinearOpMode {
     OpenCvWebcam webcam;
-
-    public static final float MIN_CONFIDENCE = 0.5f;
-    public static final float IOU_THRESHOLD = 0.5f;
 
     @Override
     public void runOpMode() {
@@ -28,7 +25,7 @@ public class OpenCVAuton extends LinearOpMode {
         webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
             public void onOpened() {
-                webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+                webcam.startStreaming(1280, 720, OpenCvCameraRotation.UPRIGHT);
             }
 
             @Override

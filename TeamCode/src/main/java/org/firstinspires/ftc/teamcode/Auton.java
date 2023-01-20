@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.util.Log;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -26,7 +28,8 @@ public class Auton extends LinearOpMode {
     /**
      * Vuforia
      */
-    private static final String VUFORIA_KEY = "AcUKrUj/////AAABmSXjxFQWh0pBkXaueCZgFLJEhfvozNSyGe2R1/LU1uY184CRr2/yQnRSCnhuR5WC4yX+Bg4wZyDwZIUdT7GMbq5fYqmOofVARi1iV0KjHRL6mOcZ0Mkum7Mt/whgXhvglqMGpXUMeGg/SDut9PVoKAYFhOM/NGrlRK8OWJPWhaMMhydlZb3Kz4BtAhOslCONU8J5lOBj6WyYruNEdJoncEc1kkF7CK6JHJy9C8Wmg816wzqVB98o9Ca+EKiuUb06Y23aOj/SIXyP9m+k3RHarjw1SaAuf48LTLDTJmBlsHhfS4H4bVL9t67NuSVj8xRgkDW/vfz0F6+aUu2SVD7Udt5PhX7qTa4BSbOX0PWgH/aG";
+    private static final String VUFORIA_KEY =
+            "AcUKrUj/////AAABmSXjxFQWh0pBkXaueCZgFLJEhfvozNSyGe2R1/LU1uY184CRr2/yQnRSCnhuR5WC4yX+Bg4wZyDwZIUdT7GMbq5fYqmOofVARi1iV0KjHRL6mOcZ0Mkum7Mt/whgXhvglqMGpXUMeGg/SDut9PVoKAYFhOM/NGrlRK8OWJPWhaMMhydlZb3Kz4BtAhOslCONU8J5lOBj6WyYruNEdJoncEc1kkF7CK6JHJy9C8Wmg816wzqVB98o9Ca+EKiuUb06Y23aOj/SIXyP9m+k3RHarjw1SaAuf48LTLDTJmBlsHhfS4H4bVL9t67NuSVj8xRgkDW/vfz0F6+aUu2SVD7Udt5PhX7qTa4BSbOX0PWgH/aG";
     private VuforiaLocalizer vuforia;
 
     /**
@@ -50,7 +53,6 @@ public class Auton extends LinearOpMode {
             tfod.setZoom(1.0, 16.0 / 9.0);
         }
 
-        Utils.telemetry = telemetry;
         telemetry.addData(">", "Press Play to start op mode");
         telemetry.update();
         waitForStart();
@@ -64,7 +66,7 @@ public class Auton extends LinearOpMode {
         while (opModeIsActive() && label.isEmpty()) {
             List<Recognition> recognitions = tfod.getUpdatedRecognitions();
             if (recognitions == null) continue;
-            Utils.log("# Objects Detected: " + recognitions.size() + "\n");
+            Log.d("X", "# Objects Detected: " + recognitions.size() + "\n");
 
             double maxConfience = 0.0;
             for (Recognition recogn : recognitions) {
@@ -142,10 +144,12 @@ public class Auton extends LinearOpMode {
      * Initialize the TensorFlow Object Detection engine.
      */
     private void initializeTFOD() {
-        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId",
-                "id",
-                hardwareMap.appContext.getPackageName());
-        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        int tfodMonitorViewId =
+                hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId",
+                        "id",
+                        hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters =
+                new TFObjectDetector.Parameters(tfodMonitorViewId);
         tfodParameters.minResultConfidence = 0.55f;
         tfodParameters.isModelTensorFlow2 = true;
         tfodParameters.inputSize = 300;

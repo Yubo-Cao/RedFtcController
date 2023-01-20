@@ -1,132 +1,99 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode
 
-import static org.firstinspires.ftc.teamcode.Utils.telemetry;
+import android.content.res.AssetManager
+import android.util.Log
+import org.opencv.core.Mat
+import org.opencv.core.Point
+import org.opencv.core.Scalar
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
+import org.openftc.easyopencv.OpenCvPipeline
+import org.openftc.easyopencv.OpenCvWebcam
+import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 
-import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
+fun loadModelFile(assetManager: AssetManager, modelPath: String): MappedByteBuffer {
+    val fileDescriptor = assetManager.openFd(modelPath)
+    var fileChannel: FileChannel
+    FileInputStream(fileDescriptor.fileDescriptor).use { inputStream ->
+        fileChannel = inputStream.channel
+        val startOffset = fileDescriptor.startOffset
+        val declaredLength = fileDescriptor.declaredLength
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+    }
+}
 
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvPipeline;
-import org.openftc.easyopencv.OpenCvWebcam;
-import org.tensorflow.lite.Interpreter;
+class TFODPipeline @JvmOverloads constructor(
+    modelPath: String = "model.tflite",
+    assetManager: AssetManager,
+    val webcam: OpenCvWebcam,
+    val model: Interpreter = Interpreter(loadModelFile(assetManager, modelPath)),
+    val minConfidence: Float = 0.5f,
+    val iouThreshold: Float = 0.5f,
+) : OpenCvPipeline() {
+    var viewportPaused = false
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-
-public class TFODPipeline extends OpenCvPipeline {
-    // model
-    private Interpreter tflite;
-    private static float min_confidence = 0.5f;
-    private static float iou_threshold = 0.5f;
-
-    // camera IO
-    boolean viewportPaused;
-    private OpenCvWebcam webcam;
-
-    @Override
-    public Mat processFrame(Mat input) {
-        float[][][][] inputArray = new float[1][640][640][3];
-        Mat resized = new Mat();
-        Imgproc.resize(input, resized, new Size(640, 640));
-        for (int i = 0; i < 640; i++) {
-            for (int j = 0; j < 640; j++) {
-                double[] pixel = resized.get(i, j);
-                inputArray[0][i][j][0] = (float) pixel[0];
-                inputArray[0][i][j][1] = (float) pixel[1];
-                inputArray[0][i][j][2] = (float) pixel[2];
+    override fun processFrame(input: Mat): Mat {
+        val inputArray = Array(1) { Array(INPUT_SIZE) { Array(INPUT_SIZE) { FloatArray(3) } } }
+        val resized = Mat()
+        Imgproc.resize(input, resized, Size(INPUT_SIZE.toDouble(), INPUT_SIZE.toDouble()))
+        for (i in 0 until INPUT_SIZE) {
+            for (j in 0 until INPUT_SIZE) {
+                val pixel = resized[i, j]
+                inputArray[0][i][j][0] = pixel[0].toFloat()
+                inputArray[0][i][j][1] = pixel[1].toFloat()
+                inputArray[0][i][j][2] = pixel[2].toFloat()
             }
         }
-        float[][][] outputArray = new float[1][25200][8];
-        tflite.run(inputArray, outputArray);
-        int width = input.cols();
-        int height = input.rows();
-        List<Detection> result =
-                Arrays.stream(outputArray[0])
-                        .filter((a) -> a[4] > min_confidence)
-                        .map((array) -> Detection.fromArray(array, width, height))
-                        .collect(Collectors.toList());
-        result = nms(result, 0.5f);
+        val outputArray = Array(1) { Array(25200) { FloatArray(8) } }
+        model.run(inputArray, outputArray)
+        val width = input.cols()
+        val height = input.rows()
 
-        for (Detection r : result) {
-            telemetry.addData("Detection", r);
+        val result = nms(outputArray[0].filter { it[4] > minConfidence }
+            .map { Detection.fromArray(it, width.toFloat(), height.toFloat()) }.toMutableList())
+
+        for (r in result) {
+            Log.d(TAG, r.toString())
+            Imgproc.rectangle(input, r.bbox.toRect(), Scalar(0.0, 255.0, 0.0), 2)
+            Imgproc.putText(
+                input, r.label + " " + r.confidence, Point(
+                    r.bbox.x, r.bbox.y - Imgproc.getTextSize(
+                        r.label, Imgproc.FONT_HERSHEY_SIMPLEX, 1.0, 2, null
+                    ).height
+                ), Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0.0, 255.0, 0.0), 2
+            )
         }
-        throw new RuntimeException("Stop");
+        return input
     }
 
-    @Override
-    public void onViewportTapped() {
-        viewportPaused = !viewportPaused;
-
-        if (viewportPaused) {
-            webcam.pauseViewport();
-        } else {
-            webcam.resumeViewport();
-        }
-    }
-
-    public TFODPipeline(AssetManager assetManager, OpenCvWebcam webcam, float min_confidence, float iou_threshold) {
-        try {
-            loadModel(assetManager);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        this.webcam = webcam;
-    }
-
-    public TFODPipeline(AssetManager assetManager, OpenCvWebcam webcam) {
-        this(assetManager, webcam, min_confidence, iou_threshold);
+    override fun onViewportTapped() {
+        viewportPaused = !viewportPaused
+        if (viewportPaused) webcam.pauseViewport() else webcam.resumeViewport()
     }
 
 
-    public void loadModel(AssetManager assetManager) throws IOException {
-        String modelPath = "best.tflite";
-        tflite = new Interpreter(loadModelFile(assetManager, modelPath));
-    }
-
-    private MappedByteBuffer loadModelFile(AssetManager assetManager, String modelPath) throws IOException {
-        AssetFileDescriptor fileDescriptor = assetManager.openFd(modelPath);
-        FileChannel fileChannel;
-        try (FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor())) {
-            fileChannel = inputStream.getChannel();
-            long startOffset = fileDescriptor.getStartOffset();
-            long declaredLength = fileDescriptor.getDeclaredLength();
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
-        }
-    }
-
-    public List<Detection> nms(List<Detection> detections, float iouThreshold) {
-        detections.sort((d1, d2) -> -Float.compare(d1.confidence, d2.confidence));
-
-        List<Detection> result = new ArrayList<>();
-        while (!detections.isEmpty()) {
-            Detection detection = detections.remove(0);
-            result.add(detection);
-
-            List<Detection> removeList = new ArrayList<>();
-            for (Detection d : detections) {
-                if (iou(detection.x, detection.y, detection.width, detection.height, d.x, d.y, d.width, d.height) > iouThreshold) {
-                    removeList.add(d);
+    fun nms(detections: MutableList<Detection>): List<Detection> {
+        detections.sortWith { (_, _, ca), (_, _, b) -> -ca.compareTo(b) }
+        val result: MutableList<Detection> = ArrayList()
+        while (detections.isNotEmpty()) {
+            val detection = detections.removeAt(0)
+            result.add(detection)
+            val removeList: MutableList<Detection> = ArrayList()
+            for (d in detections) {
+                if (BBox.iou(detection.bbox, d.bbox) > iouThreshold) {
+                    removeList.add(d)
                 }
             }
-            detections.removeAll(removeList);
+            detections.removeAll(removeList)
         }
-        return result;
+        return result
     }
 
-    private float iou(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
-        int x_overlap = Math.max(0, Math.min(x1 + w1, x2 + w2) - Math.max(x1, x2));
-        int y_overlap = Math.max(0, Math.min(y1 + h1, y2 + h2) - Math.max(y1, y2));
-        int intersection = x_overlap * y_overlap;
-        int union = w1 * h1 + w2 * h2 - intersection;
-        return (float) intersection / union;
+    companion object {
+        private const val TAG = "TFODPipeline"
+        private const val INPUT_SIZE = 640
     }
 }
