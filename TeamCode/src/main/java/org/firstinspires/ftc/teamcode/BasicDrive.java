@@ -19,18 +19,7 @@ public class BasicDrive extends OpMode {
     private DcMotor baseArm = null;
     private Servo gripServo1 = null;
     private Servo gripServo2 = null;
-    private CRServo connector = null;
     private DcMotor linearSlide = null;
-    private double deadzoneX = 0;
-    private double deadzoneY = 0;
-    private double deadzoneRotate = 0;
-    private int level = 0;
-
-    private boolean slowMode = false;
-    private boolean yToggle = false;
-    private boolean aToggle = false;
-    boolean flywheel = false;
-    boolean closed = false;
 
     @Override
     public void init() {
@@ -59,11 +48,6 @@ public class BasicDrive extends OpMode {
      */
     @Override
     public void loop() {
-        // Deadzone to prevent robot from moving when joystick is not being touched
-        deadzoneX = Math.abs(gamepad1.left_stick_x) < 0.05 ? 0 : -gamepad1.left_stick_x;
-        deadzoneY = Math.abs(gamepad1.right_stick_x) < 0.05 ? 0 : -gamepad1.right_stick_x;
-        deadzoneRotate = Math.abs(gamepad1.left_stick_y) < 0.05 ? 0 : gamepad1.left_stick_y;
-
         if (gamepad1.right_trigger == 1) {
             baseArm.setPower(.5);
         } else {
@@ -80,17 +64,20 @@ public class BasicDrive extends OpMode {
         }
 
         if (gamepad1.left_trigger >= 0.05)
-            linearSlide.setPower(-1.5);
+            linearSlide.setPower(-0.9);
         else if (gamepad1.right_trigger >= 0.05)
-            linearSlide.setPower(1.5);
+            linearSlide.setPower(0.9);
         else
             linearSlide.setPower(0.0);
 
         // Mecanum wheel drive calculations
-        double r =
-                Math.hypot(deadzoneX, -deadzoneY); // deadzones are incorporated into these values
-        double robotAngle = Math.atan2(-deadzoneY, deadzoneX) - Math.PI / 4;
-        double rightX = deadzoneRotate / 1.25;
+        double dx = Math.abs(gamepad1.left_stick_x) < 0.05 ? 0 : -gamepad1.left_stick_x;
+        double dy = Math.abs(gamepad1.right_stick_x) < 0.05 ? 0 : -gamepad1.right_stick_x;
+        double dr = Math.abs(gamepad1.left_stick_y) < 0.05 ? 0 : gamepad1.left_stick_y;
+
+        double r = Math.hypot(dx, -dy); // deadzones are incorporated into these values
+        double robotAngle = Math.atan2(-dy, dx) - Math.PI / 4;
+        double rightX = dr / 1.25;
         final double v1 = r * Math.cos(robotAngle) + rightX;
         final double v2 = r * Math.sin(robotAngle) - rightX;
         final double v3 = r * Math.sin(robotAngle) + rightX;
@@ -100,7 +87,9 @@ public class BasicDrive extends OpMode {
         frontRight.setPower(v1 * .75);
         frontLeft.setPower(v4 * .75);
         backRight.setPower(v3 * .75);
+        backLeft.setPower(v2 * .75);
     }
+
     @Override
     public void stop() {
     }
