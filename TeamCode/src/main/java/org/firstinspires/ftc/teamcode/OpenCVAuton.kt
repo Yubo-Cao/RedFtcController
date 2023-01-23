@@ -1,61 +1,87 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.openftc.easyopencv.OpenCvCamera;
-import org.openftc.easyopencv.OpenCvCameraFactory;
-import org.openftc.easyopencv.OpenCvCameraRotation;
-import org.openftc.easyopencv.OpenCvWebcam;
+import android.util.Log
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName
+import org.openftc.easyopencv.OpenCvCamera.AsyncCameraOpenListener
+import org.openftc.easyopencv.OpenCvCameraFactory
+import org.openftc.easyopencv.OpenCvCameraRotation
 
 @Autonomous(name = "Open CV Powered Auton")
-public class OpenCVAuton extends LinearOpMode {
-    OpenCvWebcam webcam;
+class OpenCVAuton : LinearOpMode() {
+    companion object {
+        const val TFOD_MODEL_ASSET = "model.tflite"
+        const val TAG = "OpenCVAuton"
+        const val CAMERA_NAME = "Webcam 1"
+    }
 
-    @Override
-    public void runOpMode() {
-        int cameraMonitorViewId = hardwareMap.appContext.getResources()
-                .getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        webcam = OpenCvCameraFactory.getInstance()
-                .createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
-        webcam.setPipeline(new TFODPipeline(hardwareMap.appContext.getAssets(), webcam));
-        webcam.setMillisecondsPermissionTimeout(5000);
+    private val driveTrain by lazy { DriveTrain(hardwareMap) }
 
-        webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
-            @Override
-            public void onOpened() {
-                webcam.startStreaming(1280, 720, OpenCvCameraRotation.UPRIGHT);
+    override fun runOpMode() {
+        park()
+    }
+
+    private fun park() {
+        val classification = classify()
+        log("Classification: $classification")
+        when (classification) {
+            "Dragon" -> driveTrain.apply {
+                blockBackward()
+                blockLeft()
             }
-
-            @Override
-            public void onError(int errorCode) {
-                telemetry.addData("Error", errorCode);
-                telemetry.update();
+            "Robot" -> driveTrain.apply {
+                blockBackward()
             }
-        });
-
-        telemetry.addLine("Waiting for start");
-        telemetry.update();
-
-
-        waitForStart();
-
-        while (opModeIsActive()) {
-            telemetry.addData("Frame Count", webcam.getFrameCount());
-            telemetry.addData("FPS", String.format("%.2f", webcam.getFps()));
-            telemetry.addData("Total frame time ms", webcam.getTotalFrameTimeMs());
-            telemetry.addData("Pipeline time ms", webcam.getPipelineTimeMs());
-            telemetry.addData("Overhead time ms", webcam.getOverheadTimeMs());
-            telemetry.addData("Theoretical max FPS", webcam.getCurrentPipelineMaxFps());
-            telemetry.update();
-
-
-            if (gamepad1.a) {
-                webcam.stopStreaming();
+            "Console" -> driveTrain.apply {
+                blockForward()
+                blockRight()
             }
-
-            sleep(100);
         }
+        driveTrain.stop()
+    }
+
+    private fun classify(): String {
+        val ctx = hardwareMap.appContext
+        val cameraMonitorViewId = ctx.resources.getIdentifier(
+            "cameraMonitorViewId",
+            "id",
+            ctx.packageName,
+        )
+        val webcam = OpenCvCameraFactory.getInstance().createWebcam(
+            hardwareMap[WebcamName::class.java, CAMERA_NAME],
+            cameraMonitorViewId
+        )
+        val pipeline = TFODPipeline(webcam, ctx.assets, TFOD_MODEL_ASSET)
+        webcam.setPipeline(pipeline)
+        log("Request permission"); webcam.setMillisecondsPermissionTimeout(5000)
+
+        webcam.openCameraDeviceAsync(object : AsyncCameraOpenListener {
+            override fun onOpened() = webcam.startStreaming(1280, 720, OpenCvCameraRotation.UPRIGHT)
+            override fun onError(errorCode: Int) = log("Error: $errorCode")
+        })
+
+        log("Ready to start"); waitForStart()
+        telemetry.clearAll()
+
+        var classification: String? = null
+        while (classification == null) {
+            classification = pipeline.classification
+            safeSleep(1000)
+        }
+        webcam.stopStreaming()
+        return classification
+    }
+
+    private fun safeSleep(millis: Long) = try {
+        sleep(millis)
+    } catch (e: InterruptedException) {
+        log("Interrupted")
+    }
+
+    private fun log(msg: String): Unit = with(telemetry) {
+        Log.d(TAG, msg)
+        addLine(msg)
+        update()
     }
 }
