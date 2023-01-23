@@ -20,7 +20,6 @@ import java.util.regex.Pattern
 apply plugin: 'com.android.application'
 
 android {
-
     compileSdkVersion 29
 
     signingConfigs {
@@ -114,10 +113,12 @@ android {
     packagingOptions {
         pickFirst '**/*.so'
     }
+
     sourceSets.main {
         jni.srcDirs = []
         jniLibs.srcDir rootProject.file('libs')
     }
+
     ndkVersion '21.3.6528147'
 }
 
@@ -126,4 +127,3 @@ repositories {
         dirs rootProject.file('libs')
     }
 }
-

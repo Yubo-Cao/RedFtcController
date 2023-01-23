@@ -18,14 +18,22 @@ buildscript {
     }
 }
 
-// This is now required because aapt2 has to be downloaded from the
-// google() repository beginning with version 3.2 of the Android Gradle Plugin
+plugins {
+    // generate kotlin docs
+    id 'org.jetbrains.dokka' version '1.7.20'
+}
+
 allprojects {
     repositories {
         mavenCentral()
         google()
     }
 }
+
+subprojects {
+    apply plugin: 'org.jetbrains.dokka'
+}
+
 
 repositories {
     mavenCentral()

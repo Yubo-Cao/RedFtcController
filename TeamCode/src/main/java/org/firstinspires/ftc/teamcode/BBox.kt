@@ -23,13 +23,6 @@ data class BBox(
         height.toDouble()
     )
 
-    constructor(x: Float, y: Float, width: Float, height: Float) : this(
-        x.toDouble(),
-        y.toDouble(),
-        width.toDouble(),
-        height.toDouble()
-    )
-
     companion object {
         fun fromRect(rect: Rect) = BBox(rect.x, rect.y, rect.width, rect.height)
         fun fromRect(rect: Rect2d) = BBox(rect.x, rect.y, rect.width, rect.height)
@@ -74,6 +67,8 @@ data class BBox(
 
     fun scale(scaleX: Double, scaleY: Double) =
         BBox(x * scaleX, y * scaleY, width * scaleX, height * scaleY)
+
+    fun scale(scale: Double) = scale(scale, scale)
 
     fun iou(other: BBox): Double = BBox.iou(this, other)
 }
