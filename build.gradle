@@ -1,8 +1,4 @@
-/**
- * Top-level build file for ftc_app project.
- *
- * It is extraordinarily rare that you will ever need to edit this file.
- */
+import org.jetbrains.dokka.gradle.DokkaTask
 
 buildscript {
     ext {
@@ -17,9 +13,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
-
 plugins {
-    // generate kotlin docs
     id 'org.jetbrains.dokka' version '1.7.20'
 }
 
@@ -30,10 +24,22 @@ allprojects {
     }
 }
 
+
 subprojects {
     apply plugin: 'org.jetbrains.dokka'
 }
 
+tasks.withType(DokkaTask.class) {
+    String dokkaBaseConfiguration = """
+    {
+      "customAssets": ["${file("assets/logo.webp")}"],
+      "footerMessage": "(c) 2023 RedRobodragon FTC 16796"
+    }
+    """
+    pluginsMapConfiguration.set(
+            ["org.jetbrains.dokka.base.DokkaBase": dokkaBaseConfiguration]
+    )
+}
 
 repositories {
     mavenCentral()

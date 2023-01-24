@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode
+package org.firstinspires.ftc.teamcode.auton
 
 data class Detection(val bbox: BBox, val label: String, val confidence: Double) {
     companion object {

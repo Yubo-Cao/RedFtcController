@@ -4,6 +4,8 @@ import android.util.Log
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName
+import org.firstinspires.ftc.teamcode.auton.TFODPipeline
+import org.firstinspires.ftc.teamcode.components.DriveTrain
 import org.openftc.easyopencv.OpenCvCamera.AsyncCameraOpenListener
 import org.openftc.easyopencv.OpenCvCameraFactory
 import org.openftc.easyopencv.OpenCvCameraRotation
@@ -19,7 +21,11 @@ class OpenCVAuton : LinearOpMode() {
         const val CAMERA_NAME = "Webcam 1"
     }
 
-    private val driveTrain by lazy { DriveTrain(hardwareMap) }
+    private val driveTrain by lazy {
+        DriveTrain(
+            hardwareMap
+        )
+    }
 
     override fun runOpMode() {
         park()

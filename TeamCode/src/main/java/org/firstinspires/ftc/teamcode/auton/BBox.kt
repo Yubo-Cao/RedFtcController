@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode
+package org.firstinspires.ftc.teamcode.auton
 
 import org.opencv.core.Rect
 import org.opencv.core.Rect2d
