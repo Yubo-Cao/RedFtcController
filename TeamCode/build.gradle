@@ -7,8 +7,14 @@ android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
     compileSdkVersion 33
+    androidResources {
+        noCompress 'tflite'
+    }
 
     packagingOptions {
+        jniLibs {
+            pickFirsts += ['**/*.so']
+        }
         jniLibs.useLegacyPackaging true
     }
 }
