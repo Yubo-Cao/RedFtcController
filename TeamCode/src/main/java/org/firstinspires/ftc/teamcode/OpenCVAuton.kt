@@ -8,7 +8,10 @@ import org.openftc.easyopencv.OpenCvCamera.AsyncCameraOpenListener
 import org.openftc.easyopencv.OpenCvCameraFactory
 import org.openftc.easyopencv.OpenCvCameraRotation
 
-@Autonomous(name = "Open CV Powered Auton")
+/**
+ * Autonomous program for PowerPlay, using OpenCV.
+ */
+@Autonomous(name = "OpenCV Autonomous")
 class OpenCVAuton : LinearOpMode() {
     companion object {
         const val TFOD_MODEL_ASSET = "model.tflite"
@@ -22,26 +25,10 @@ class OpenCVAuton : LinearOpMode() {
         park()
     }
 
-    private fun park() {
-        val classification = classify()
-        log("Classification: $classification")
-        when (classification) {
-            "Dragon" -> driveTrain.apply {
-                blockBackward()
-                blockLeft()
-            }
-            "Robot" -> driveTrain.apply {
-                blockBackward()
-            }
-            "Console" -> driveTrain.apply {
-                blockForward()
-                blockRight()
-            }
-        }
-        driveTrain.stop()
-    }
-
-    private fun classify(): String {
+    /**
+     * Classify the object in front of the robot.
+     */
+    fun classify(): String {
         val ctx = hardwareMap.appContext
         val cameraMonitorViewId = ctx.resources.getIdentifier(
             "cameraMonitorViewId",
@@ -73,15 +60,45 @@ class OpenCVAuton : LinearOpMode() {
         return classification
     }
 
+    /**
+     * Park the robot based on the object in front of it.
+     */
+    private fun park() {
+        val classification = classify()
+        log("Classification: $classification")
+        when (classification) {
+            "Dragon" -> driveTrain.apply {
+                blockBackward()
+                blockLeft()
+            }
+            "Robot" -> driveTrain.apply {
+                blockBackward()
+            }
+            "Console" -> driveTrain.apply {
+                blockForward()
+                blockRight()
+            }
+        }
+        driveTrain.stop()
+    }
+
+    /**
+     * Sleep, but catch the exception.
+     * @param millis The number of milliseconds to sleep.
+     */
     private fun safeSleep(millis: Long) = try {
         sleep(millis)
     } catch (e: InterruptedException) {
         log("Interrupted")
     }
 
-    private fun log(msg: String): Unit = with(telemetry) {
+    /**
+     * Log a message to the telemetry and logcat.
+     * @param msg The message to log.
+     */
+    private fun log(msg: String) {
         Log.d(TAG, msg)
-        addLine(msg)
-        update()
+        telemetry.addData(TAG, msg)
+        telemetry.update()
     }
 }

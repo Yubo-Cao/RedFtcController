@@ -1,94 +1,115 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import com.qualcomm.robotcore.hardware.DcMotor
+import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.Servo
+import kotlin.math.*
 
-@TeleOp(name = "Basic Drive X", group = "Iterative Opmode")
-public class BasicDrive extends OpMode {
-    // drive train
-    private DcMotor backLeft = null;
-    private DcMotor backRight = null;
-    private DcMotor frontLeft = null;
-    private DcMotor frontRight = null;
-
-    // intake servo
-    private DcMotor baseArm = null;
-    private Servo gripServo1 = null;
-    private Servo gripServo2 = null;
-    private DcMotor linearSlide = null;
-
-    @Override
-    public void init() {
-        // ---- drive train ----
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        backLeft.setDirection(DcMotor.Direction.FORWARD);
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
-        backRight.setDirection(DcMotor.Direction.REVERSE);
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontLeft.setDirection(DcMotor.Direction.FORWARD);
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
-        linearSlide = hardwareMap.get(DcMotor.class, "linearSlide");
-        linearSlide.setDirection(DcMotor.Direction.FORWARD);
-        // ---- intake ----
-        // base arm
-        baseArm = hardwareMap.get(DcMotor.class, "baseArm");
-        // left and right servo
-        gripServo1 = hardwareMap.get(Servo.class, "gripServo1");
-        gripServo2 = hardwareMap.get(Servo.class, "gripServo2");
-        gripServo2.setDirection(Servo.Direction.REVERSE);
-    }
-
-    /*
-     * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
+/**
+ * Basic remote operation program for PowerPlay.
+ *
+ *  - This class supports the following operations: - Drive train. Left stick controls forward
+ * and backward motion. Right stick controls self-rotation. Mecanum wheels.
+ *  - Intake. When left trigger is pressed, linear slide moves down. When right trigger is
+ * pressed, linear slide moves up. When b is pressed, servo opens. When a is pressed, servo
+ * closes.
+ */
+@TeleOp(name = "Basic Drive")
+class BasicDrive : OpMode() {
+    /**
+     * Initialize. Because of by lazy delegate, this function is empty and is only used to
+     * suffice all the AbstractOpMode requirements.
      */
-    @Override
-    public void loop() {
-        if (gamepad1.right_trigger == 1) {
-            baseArm.setPower(.5);
-        } else {
-            baseArm.setPower(.05);
+    override fun init() {
+
+    }
+
+    /**
+     * Run continuously. This function is called repeatedly in a loop.
+     */
+    override fun loop() {
+        intakeArm.power = if (pad.right_trigger == 1f) .5 else .05
+
+        if (pad.b) {
+            gripServerLeft.position = 0.25
+            gripServoRight.position = 0.25
+        }
+        if (pad.a) {
+            gripServerLeft.position = 0.75
+            gripServoRight.position = 0.75
         }
 
-        if (gamepad1.b) {
-            gripServo1.setPosition(0.25);
-            gripServo2.setPosition(0.25);
-        }
-        if (gamepad1.a) {
-            gripServo1.setPosition(0.75);
-            gripServo2.setPosition(0.75);
-        }
-
-        if (gamepad1.left_trigger >= 0.05)
-            linearSlide.setPower(-0.9);
+        if (pad.left_trigger >= 0.05)
+            linearSlide.power = -0.9
         else if (gamepad1.right_trigger >= 0.05)
-            linearSlide.setPower(0.9);
+            linearSlide.power = 0.9
         else
-            linearSlide.setPower(0.0);
+            linearSlide.power = 0.0
 
-        // Mecanum wheel drive calculations
-        double dx = Math.abs(gamepad1.left_stick_x) < 0.05 ? 0 : -gamepad1.left_stick_x;
-        double dy = Math.abs(gamepad1.right_stick_x) < 0.05 ? 0 : -gamepad1.right_stick_x;
-        double dr = Math.abs(gamepad1.left_stick_y) < 0.05 ? 0 : gamepad1.left_stick_y;
-
-        double r = Math.hypot(dx, -dy); // deadzones are incorporated into these values
-        double robotAngle = Math.atan2(-dy, dx) - Math.PI / 4;
-        double rightX = dr / 1.25;
-        final double v1 = r * Math.cos(robotAngle) + rightX;
-        final double v2 = r * Math.sin(robotAngle) - rightX;
-        final double v3 = r * Math.sin(robotAngle) + rightX;
-        final double v4 = r * Math.cos(robotAngle) - rightX;
-
-        // Power set to each motor based on these calculations
-        frontRight.setPower(v1 * .75);
-        frontLeft.setPower(v4 * .75);
-        backRight.setPower(v3 * .75);
-        backLeft.setPower(v2 * .75);
+        mecanumWheel()
     }
 
-    @Override
-    public void stop() {
+    /**
+     * Mecanum wheel drive train. This function is called in loop() to control the drive
+     * train.
+     */
+    private fun mecanumWheel() {
+        val dx = if (abs(pad.left_stick_x) < 0.05) 0.0 else -pad.left_stick_x.toDouble()
+        val dy = if (abs(pad.right_stick_x) < 0.05) 0.0 else -pad.right_stick_x.toDouble()
+        val dr = if (abs(pad.left_stick_y) < 0.05) 0.0 else pad.left_stick_y.toDouble()
+        val r = hypot(dx, -dy)
+        val robotAngle = atan2(-dy, dx) - Math.PI / 4
+        val rightX = dr / 1.25
+
+        frontRight.power = (r * cos(robotAngle) + rightX) * .75
+        frontLeft.power = (r * cos(robotAngle) - rightX) * .75
+        backRight.power = (r * sin(robotAngle) + rightX) * .75
+        backLeft.power = (r * sin(robotAngle) - rightX) * .75
     }
+
+    override fun stop() {}
+
+    /**
+     * Drive train motors. These motors are used to control the drive train.
+     */
+    private val backLeft by lazy {
+        hardwareMap[DcMotor::class.java, "backLeft"]
+            .apply { direction = DcMotorSimple.Direction.FORWARD }
+    }
+    private val backRight by lazy {
+        hardwareMap[DcMotor::class.java, "backRight"]
+            .apply { direction = DcMotorSimple.Direction.REVERSE }
+    }
+    private val frontLeft by lazy {
+        hardwareMap[DcMotor::class.java, "frontLeft"]
+            .apply { direction = DcMotorSimple.Direction.FORWARD }
+    }
+    private val frontRight by lazy {
+        hardwareMap[DcMotor::class.java, "frontRight"]
+            .apply { direction = DcMotorSimple.Direction.REVERSE }
+    }
+
+    /**
+     * Intake motors. These motors are used to control the intake.
+     */
+    private val intakeArm by lazy {
+        hardwareMap[DcMotor::class.java, "baseArm"]
+    }
+    private val gripServerLeft by lazy {
+        hardwareMap[Servo::class.java, "gripServo1"]
+    }
+    private val gripServoRight by lazy {
+        hardwareMap[Servo::class.java, "gripServo2"]
+            .apply { direction = Servo.Direction.REVERSE }
+    }
+    private val linearSlide by lazy {
+        hardwareMap[DcMotor::class.java, "linearSlide"]
+    }
+
+    /**
+     * The default gamepad. This is the gamepad that is used to control the robot.
+     */
+    private val pad by lazy { gamepad1 }
 }
