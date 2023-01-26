@@ -42,11 +42,11 @@ class BasicDrive : OpMode() {
         }
 
         if (pad.left_trigger >= 0.05)
-            linearSlide.power = -0.9
+            linearSlide.power = -1.0
         else if (gamepad1.right_trigger >= 0.05)
-            linearSlide.power = 0.9
+            linearSlide.power = 0.4
         else
-            linearSlide.power = 0.0
+            linearSlide.power = -0.16
 
         mecanumWheel()
     }

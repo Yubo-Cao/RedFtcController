@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.auton
 
+import android.util.Log
+
 data class Detection(val bbox: BBox, val label: String, val confidence: Double) {
     companion object {
         /**
@@ -24,11 +26,19 @@ data class Detection(val bbox: BBox, val label: String, val confidence: Double) 
          */
         fun from(arr: FloatArray, width: Double = 1.0, height: Double = 1.0): Detection {
             val array = arr.map { it.toDouble() }.toDoubleArray()
-            return Detection(
-                BBox(array[0], array[1], array[2], array[3]).scale(width, height),
-                LABELS[array.sliceArray(5..array.size).withIndex().maxBy { it.value }.index],
-                array[4]
+            if (array.size != 5 + LABELS.size) throw IllegalArgumentException(
+                "Array must be of size ${5 + LABELS.size}"
             )
+            try {
+                return Detection(
+                    BBox(array[0], array[1], array[2], array[3]).scale(width, height),
+                    LABELS[array.sliceArray(5..array.size).withIndex().maxBy { it.value }.index],
+                    array[4]
+                )
+            } catch (e: Exception) {
+                Log.e("Detection", e.stackTraceToString())
+                throw e
+            }
         }
     }
 }

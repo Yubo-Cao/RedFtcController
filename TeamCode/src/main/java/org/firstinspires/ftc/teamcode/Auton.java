@@ -23,16 +23,22 @@ public class Auton extends LinearOpMode {
 
     private static final String[] LABELS = {"1 Dragon", "2 Robot", "3 Console"};
 
-    /** Vuforia */
+    /**
+     * Vuforia
+     */
     private static final String VUFORIA_KEY =
             "AcUKrUj/////AAABmSXjxFQWh0pBkXaueCZgFLJEhfvozNSyGe2R1/LU1uY184CRr2/yQnRSCnhuR5WC4yX+Bg4wZyDwZIUdT7GMbq5fYqmOofVARi1iV0KjHRL6mOcZ0Mkum7Mt/whgXhvglqMGpXUMeGg/SDut9PVoKAYFhOM/NGrlRK8OWJPWhaMMhydlZb3Kz4BtAhOslCONU8J5lOBj6WyYruNEdJoncEc1kkF7CK6JHJy9C8Wmg816wzqVB98o9Ca+EKiuUb06Y23aOj/SIXyP9m+k3RHarjw1SaAuf48LTLDTJmBlsHhfS4H4bVL9t67NuSVj8xRgkDW/vfz0F6+aUu2SVD7Udt5PhX7qTa4BSbOX0PWgH/aG";
 
     private VuforiaLocalizer vuforia;
 
-    /** Tensorflow object detection */
+    /**
+     * Tensorflow object detection
+     */
     private TFObjectDetector tfod;
 
-    /** DriveTrain */
+    /**
+     * DriveTrain
+     */
     private DriveTrain driveTrain;
 
     @Override
@@ -85,7 +91,9 @@ public class Auton extends LinearOpMode {
         tfod.shutdown();
     }
 
-    /** Move for case 1 */
+    /**
+     * Move for case 1
+     */
     private void case1() {
         driveTrain.move(0, 0.75);
         driveTrain.wait(1000.0);
@@ -93,13 +101,17 @@ public class Auton extends LinearOpMode {
         driveTrain.wait(1000.0);
     }
 
-    /** Move for case 2 */
+    /**
+     * Move for case 2
+     */
     private void case2() {
         driveTrain.move(0, 0.75);
         driveTrain.wait(1800.0);
     }
 
-    /** Move for case 2 */
+    /**
+     * Move for case 2
+     */
     private void case3() {
         driveTrain.move(0, 0.75);
         driveTrain.wait(1000.0);
@@ -107,7 +119,9 @@ public class Auton extends LinearOpMode {
         driveTrain.wait(1000.0);
     }
 
-    /** Initialize the Vuforia localization engine. */
+    /**
+     * Initialize the Vuforia localization engine.
+     */
     private void initializeVuforia() {
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
@@ -124,7 +138,9 @@ public class Auton extends LinearOpMode {
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
     }
 
-    /** Initialize the TensorFlow Object Detection engine. */
+    /**
+     * Initialize the TensorFlow Object Detection engine.
+     */
     private void initializeTFOD() {
         int tfodMonitorViewId =
                 hardwareMap

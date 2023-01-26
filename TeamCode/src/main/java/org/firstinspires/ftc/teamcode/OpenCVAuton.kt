@@ -16,7 +16,7 @@ import org.openftc.easyopencv.OpenCvCameraRotation
 @Autonomous(name = "OpenCV Autonomous")
 class OpenCVAuton : LinearOpMode() {
     companion object {
-        const val TFOD_MODEL_ASSET = "model.tflite"
+        const val TFOD_MODEL_ASSET = "best.tflite"
         const val TAG = "OpenCVAuton"
         const val CAMERA_NAME = "Webcam 1"
     }
@@ -28,7 +28,7 @@ class OpenCVAuton : LinearOpMode() {
     }
 
     override fun runOpMode() {
-        park()
+        log(classify())
     }
 
     /**
@@ -58,7 +58,7 @@ class OpenCVAuton : LinearOpMode() {
         telemetry.clearAll()
 
         var classification: String? = null
-        while (classification == null) {
+        while (classification == null || classification == "Failed") {
             classification = pipeline.classification
             safeSleep(1000)
         }
@@ -96,15 +96,15 @@ class OpenCVAuton : LinearOpMode() {
         sleep(millis)
     } catch (e: InterruptedException) {
         log("Interrupted")
+    } catch (e: Exception) {
+        log("Exception: ${e.message}")
     }
 
     /**
      * Log a message to the telemetry and logcat.
      * @param msg The message to log.
      */
-    private fun log(msg: String) {
-        Log.d(TAG, msg)
-        telemetry.addData(TAG, msg)
-        telemetry.update()
+    private fun log(msg: String?) {
+        Log.d(TAG, msg ?: "null")
     }
 }

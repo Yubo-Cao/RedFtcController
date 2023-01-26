@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.auton
 
 import android.content.res.AssetManager
 import android.util.Log
+import org.firstinspires.ftc.teamcode.OpenCVAuton
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import org.opencv.core.Scalar
@@ -12,6 +13,7 @@ import org.openftc.easyopencv.OpenCvWebcam
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
+import java.util.Arrays
 import java.util.concurrent.TimeUnit
 
 
@@ -29,7 +31,7 @@ class TFODPipeline constructor(
     path: String
 ) : OpenCvPipeline() {
     private val model: Interpreter = loadInterpreter(assetManager, path)
-    private val minConfidence: Float = 0.5f
+    private val minConfidence: Float = 0.1f
     private val iouThreshold: Float = 0.5f
 
     companion object {
@@ -64,10 +66,7 @@ class TFODPipeline constructor(
                 val declaredLength = fileDescriptor.declaredLength
                 fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
             }
-            val options = Interpreter.Options().apply {
-                setNumThreads(4)
-                setUseNNAPI(true)
-            }
+            val options = Interpreter.Options()
             return Interpreter(modelBuffer, options)
         }
     }
@@ -76,12 +75,12 @@ class TFODPipeline constructor(
      * Analyzed results. Return the class with the largest bounding box
      */
     val classification: String
-        get() = _detections.maxByOrNull { it.bbox.area }?.label ?: Detection.LABELS[1]
+        get() = _detections.maxByOrNull { it.bbox.area }?.label ?: "Failed"
 
     /**
      * All the detections
      */
-    val detections: List<Detection>
+    val detections: MutableList<Detection>
         get() = _detections
 
     /**
@@ -99,7 +98,6 @@ class TFODPipeline constructor(
             true
         }
 
-
         if (result != true) {
             Imgproc.putText(
                 input, "Inference timed out", Point(0.0, 0.0),
@@ -108,10 +106,20 @@ class TFODPipeline constructor(
             return input
         }
 
+        log("InferBence finished")
+        log(arrayOf(outputArray[0][0]).contentDeepToString());
 
-        _detections = nms(outputArray[0].filter { it[4] > minConfidence }
-            .map { Detection.from(it, width.toDouble(), height.toDouble()) }
-            .toMutableList())
+        try {
+            _detections = outputArray[0]
+                .filter { it[4] > minConfidence }
+                .map { Detection.from(it, width.toDouble(), height.toDouble()) }
+                .toMutableList()
+            log(_detections.toString())
+            _detections = nms(_detections)
+        } catch (e: Exception) {
+            Log.e(TAG, e.toString())
+        }
+
 
         for (det in detections) {
             Log.d(TAG, det.toString())
@@ -138,13 +146,14 @@ class TFODPipeline constructor(
      * Preprocess the image, resize to INPUT_SIZE and copy to inputArray
      */
     private fun preprocess(input: Mat) {
+        log("Preprocessing input")
         Imgproc.resize(input, resized, Size(INPUT_SIZE.toDouble(), INPUT_SIZE.toDouble()))
         for (i in 0 until INPUT_SIZE) {
             for (j in 0 until INPUT_SIZE) {
                 val pixel = resized[i, j]
-                inputArray[0][i][j][0] = pixel[0].toFloat()
-                inputArray[0][i][j][1] = pixel[1].toFloat()
-                inputArray[0][i][j][2] = pixel[2].toFloat()
+                inputArray[0][i][j][0] = pixel[0].toFloat() / 255.0f
+                inputArray[0][i][j][1] = pixel[1].toFloat() / 255.0f
+                inputArray[0][i][j][2] = pixel[2].toFloat() / 255.0f
             }
         }
     }
@@ -164,13 +173,14 @@ class TFODPipeline constructor(
     /**
      * All the detections
      */
-    private var _detections = listOf<Detection>()
+    private var _detections = mutableListOf<Detection>()
 
 
     /**
      * Toggle the viewport
      */
     override fun onViewportTapped() {
+        log("View port toggled")
         viewportPaused = !viewportPaused
         if (viewportPaused) webcam.pauseViewport() else webcam.resumeViewport()
     }
@@ -180,7 +190,8 @@ class TFODPipeline constructor(
      * @param detections the detections to perform NMS on
      * @return the detections after NMS
      */
-    private fun nms(detections: MutableList<Detection>): List<Detection> {
+    private fun nms(detections: MutableList<Detection>): MutableList<Detection> {
+        log("Perform NMS")
         detections.sortWith { (_, _, ca), (_, _, b) -> -ca.compareTo(b) }
         val result: MutableList<Detection> = ArrayList()
         while (detections.isNotEmpty()) {
@@ -209,8 +220,17 @@ class TFODPipeline constructor(
         return try {
             future.get(timeout, timeUnit)
         } catch (e: Exception) {
-            Log.e(TAG, message ?: "Execution timed out")
+            log(e.stackTraceToString())
+            log(message ?: "Execution timed out")
             null
         }
+    }
+
+    /**
+     * Log a message to the telemetry and logcat.
+     * @param msg The message to log.
+     */
+    private fun log(msg: String?) {
+        Log.d(OpenCVAuton.TAG, msg ?: "null")
     }
 }
