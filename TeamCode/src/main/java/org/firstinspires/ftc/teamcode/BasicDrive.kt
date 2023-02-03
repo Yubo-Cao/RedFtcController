@@ -10,11 +10,12 @@ import kotlin.math.*
 /**
  * Basic remote operation program for PowerPlay.
  *
- *  - This class supports the following operations: - Drive train. Left stick controls forward
- * and backward motion. Right stick controls self-rotation. Mecanum wheels.
+ *  - This class supports the following operations:
+ *      - Drive train. Left stick controls forward and backward motion. Right stick controls
+ *        self-rotation. Mecanum wheels.
  *  - Intake. When left trigger is pressed, linear slide moves down. When right trigger is
- * pressed, linear slide moves up. When b is pressed, servo opens. When a is pressed, servo
- * closes.
+ *        pressed, linear slide moves up. When b is pressed, servo opens. When a is pressed, servo
+ *        closes.
  */
 @TeleOp(name = "Basic Drive")
 class BasicDrive : OpMode() {

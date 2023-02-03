@@ -31,8 +31,13 @@ class TFODPipeline constructor(
     path: String
 ) : OpenCvPipeline() {
     private val model: Interpreter = loadInterpreter(assetManager, path)
-    private val minConfidence: Float = 0.1f
+    private val minConfidence: Float = 0.0f
     private val iouThreshold: Float = 0.5f
+
+    init {
+        log("Model loaded")
+        webcam.resumeViewport()
+    }
 
     companion object {
         /**
@@ -93,18 +98,7 @@ class TFODPipeline constructor(
         val height = input.rows()
 
         preprocess(input)
-        val result = withTimeout(5, TimeUnit.SECONDS) {
-            model.run(inputArray, outputArray)
-            true
-        }
-
-        if (result != true) {
-            Imgproc.putText(
-                input, "Inference timed out", Point(0.0, 0.0),
-                Imgproc.FONT_HERSHEY_SIMPLEX, 1.0, COLOR, 2
-            )
-            return input
-        }
+        model.run(inputArray, outputArray)
 
         log("InferBence finished")
         log(arrayOf(outputArray[0][0]).contentDeepToString());
@@ -138,7 +132,6 @@ class TFODPipeline constructor(
                 -1
             )
         }
-
         return input
     }
 
@@ -158,10 +151,6 @@ class TFODPipeline constructor(
         }
     }
 
-    /**
-     * The viewport/camera stream
-     */
-    private var viewportPaused = false
 
     /**
      * Infer input, process, and output tensor buffer
@@ -175,15 +164,6 @@ class TFODPipeline constructor(
      */
     private var _detections = mutableListOf<Detection>()
 
-
-    /**
-     * Toggle the viewport
-     */
-    override fun onViewportTapped() {
-        log("View port toggled")
-        viewportPaused = !viewportPaused
-        if (viewportPaused) webcam.pauseViewport() else webcam.resumeViewport()
-    }
 
     /**
      * Perform non-maximum suppression

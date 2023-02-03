@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode
 import android.util.Log
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
+import com.qualcomm.robotcore.hardware.ColorSensor
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName
 import org.firstinspires.ftc.teamcode.auton.TFODPipeline
 import org.firstinspires.ftc.teamcode.components.DriveTrain
@@ -27,8 +28,16 @@ class OpenCVAuton : LinearOpMode() {
         )
     }
 
+    private val colorSensor by lazy {
+        hardwareMap.get(ColorSensor::class.java, "colorSensor")
+    }
+
     override fun runOpMode() {
-        log(classify())
+        log("Ready to start"); waitForStart()
+        telemetry.clearAll()
+        while (true) {
+            Log.d(TAG, "Color: ${colorSensor.red()}, ${colorSensor.green()}, ${colorSensor.blue()}")
+        }
     }
 
     /**
@@ -58,10 +67,16 @@ class OpenCVAuton : LinearOpMode() {
         telemetry.clearAll()
 
         var classification: String? = null
-        while (classification == null || classification == "Failed") {
-            classification = pipeline.classification
-            safeSleep(1000)
+        try {
+            while (classification == null || classification == "Failed") {
+                classification = pipeline.classification
+                this.sleep(1000L)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error: ${e.localizedMessage}")
+            return ""
         }
+
         webcam.stopStreaming()
         return classification
     }
